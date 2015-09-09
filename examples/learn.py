@@ -5,8 +5,7 @@ import os
 
 from datextractor.utils import get_texts_info, \
     get_data_from_page, \
-    check_page_without_date, \
-    validate_page
+    validate_page, read_csv
 
 BASE_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), '..'))
 RES_FOLDER = os.path.join(BASE_DIR, 'resources')
@@ -26,19 +25,8 @@ create_folder(RES_FOLDER)
 create_folder(LEARN_FOLDER)
 
 
-def main():
-    active_folder = ACTIVE_PAGES_DIR
-
-    _path_active_texts_raw = join(LEARN_FOLDER, 'active_texts_raw.pkl')
-
-    # ////////////////////////////
-    # Load data
-    # ////////////////////////////
-    active_texts = get_texts_info(_path_active_texts_raw, active_folder)
-
-    print(len(active_texts))
-
-    not_processing_list = [
+def get_not_valid_cnts():
+    return [
         193,
         259,
         306,
@@ -66,25 +54,28 @@ def main():
         964
     ]
 
-    cnt = 0
-    for i, x in enumerate(active_texts[cnt:5]):
-        print("Parse %s of %s" % (i + cnt, len(active_texts)))
 
-        if x not in not_processing_list and validate_page(x):
-            date = get_data_from_page(x)
+def main():
+    active_folder = ACTIVE_PAGES_DIR
 
-            if date is None and check_page_without_date(x):
-                continue
-            elif date is None:
-                with open('/tmp/test.html', 'w') as fio:
-                    fio.write(x)
+    _path_markup_csv = join(RES_FOLDER, 'markup.csv')
+
+    cnt_tests = 52
+    test_data = read_csv(_path_markup_csv)[1:cnt_tests]
+
+    _path_active_texts_raw = join(LEARN_FOLDER, 'active_texts_raw.pkl')
+    texts = get_texts_info(_path_active_texts_raw, active_folder)
+
+    not_processing_list = get_not_valid_cnts()
+
+    for page_str, _, date in test_data:
+        page = int(page_str)
+        page_text = texts[page]
+        if page not in not_processing_list and validate_page(page_text):
+            page_date = get_data_from_page(page_text)
+            if date != page_date:
+                print("Error: excepted '%s', got '%s'" % (date, page_date))
                 break
-            else:
-                pass
-                # print(date)
-    else:
-        print("All ok")
-
 
 if __name__ == '__main__':
     main()
