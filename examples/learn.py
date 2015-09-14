@@ -1,4 +1,5 @@
 # -*- encoding: utf-8 -*-
+import csv
 
 from os.path import join
 import os
@@ -75,12 +76,20 @@ def get_test_table():
 
 def main():
     active_folder = ACTIVE_PAGES_DIR
+    _path_markup_csv = join(RES_FOLDER, 'markup.csv')
 
-    # https://docs.google.com/spreadsheets/d/1WeJn9IrrIy1pMNYVzQdmTPmaYHG9DV6Fev-kc-K-Osw/edit?usp=sharing
-    _path_markup_csv = join(RES_FOLDER, 'markup - Лист1.csv')
+    if os.path.exists(_path_markup_csv):
+        table = read_csv(_path_markup_csv)
+    else:
+        table = get_test_table().get_all_values()
+        with open(_path_markup_csv, 'w') as fio:
+            _ = csv.writer(fio)
+            for x in table:
+                _.writerow(x)
+
 
     cnt_tests = 52
-    test_data = read_csv(_path_markup_csv)[1:cnt_tests]
+    test_data = table[1:cnt_tests]
 
     _path_active_texts_raw = join(LEARN_FOLDER, 'active_texts_raw.pkl')
     texts = get_texts_info(_path_active_texts_raw, active_folder)
