@@ -1,9 +1,12 @@
 # -*- encoding: utf-8 -*-
 from datetime import datetime
-from time import mktime
+from functools import partial
+import pprint
 import re
 
 from bs4 import BeautifulSoup
+import bs4.element
+from funcy import mapcat, merge
 from parsedatetime import Calendar, Constants
 
 
@@ -147,46 +150,149 @@ def check_page_without_date(text: str) -> bool:
     return result
 
 
-def get_data_from_page(text: str) -> datetime:
+def prepare_date(date: str) -> str:
+    result = remove_week_day(date)
+    return result
+
+
+def _extract_date(tag: str, el: bs4.element.Tag, verbose: bool=False) -> list:
+    result = []
+
+    if len(el) > 500:
+        return []
+
+    # if verbose:
+    #     print(el)
+
+    if tag == 'meta' and el.has_attr('content'):
+        result.append(el['content'])
+    if tag == 'abbr' and all([el.has_attr('itemprop'), el.has_attr('title')]):
+        result.append(el['title'])
+    # if tag == 'time' and el.has_attr('datetime'):
+    #     result.append(el['datetime'])
+
+    _ = el.prettify()
+    _ = BeautifulSoup(_, "lxml").getText()
+    _ = _[:300]
+    if _:
+        result.append(_.lower().strip())
+
+    if verbose:
+        pprint.pprint(result)
+    return result
+
+
+def find_am_pm_time(text):
+    return re.findall(r'(\d{2}):(\d{2}) ?((?:am|pm))', text, re.I)
+
+
+def find_24_time(text):
+    return re.findall(r'(\d{2}):(\d{2})', text, re.I)
+
+
+def get_data_from_page(text: str, verbose: bool=False) -> datetime:
     page = BeautifulSoup(text, "lxml")
     cal = Calendar(Constants("en"))
 
-    result = None
+    funcs = [
+        cal.parseDateText,
+        cal.parse,
+        cal.parseDT,
+    ]
 
-    _tags = get_date_tags()
+    all_dates = []
 
-    date = None
-    for key, html_tags in _tags.items():
-        for tag in html_tags:
-            if check_pypi(page):
-                _ = page.findAll('table', {"class": "list"})
-                date = _[0].findAll("tr")[1].findAll('td')[3].getText()
-                break
-            else:
-                _ = page.findAll(key, tag)
-                if _ and len(_[0]) < 500:
-                    if key == 'meta':
-                        date = _[0]['content']
-                    elif key == 'time':
-                        if 'datetime' in _[0]:
-                            date = _[0]['datetime']
-                        else:
-                            date = _[0].prettify()
-                            date = BeautifulSoup(date, "lxml").getText()
-                            date = date[:300]
-                    else:
-                        date = _[0].prettify()
-                        date = BeautifulSoup(date, "lxml").getText()
-                        date = date[:300]
-    #
-    # if date is None:
-    #     _, _2 = cal.parse(text)
-    #     result = datetime.fromtimestamp(mktime(_))
-    #     print("!!!!! %s" % result)
+    if check_pypi(page):
+        if verbose:
+            print("Pypy page")
+        _ = page.findAll('table', {"class": "list"})
+        _ = _[0].findAll("tr")[1].findAll('td')[3].getText()  # date (from html)
+        _day = datetime.strptime(_, "%Y-%m-%d")  # datetime
+        _time = None
+    else:
+        _extract_func_date = partial(_extract_date, verbose=verbose)
+        _tags = get_date_tags()
+        for tag, tags_params in _tags.items():
+            all_dates = merge(
+                all_dates,
+                list(mapcat(
+                    partial(_extract_func_date, tag),
+                    mapcat(page.findAll,
+                           [tag] * len(tags_params), tags_params))))
 
-    if date is not None:
-        _, _2 = cal.parse(remove_week_day(date))
-        result = datetime.fromtimestamp(mktime(_))
+        if verbose:
+            print('=' * 20)
+            print(' ' * 20)
+            print(' ' * 20)
+
+        all_dates = list(map(prepare_date, all_dates))
+        print(all_dates)
+
+        # pprint.pprint(all_dates)
+        minutes_hour = datetime.now()
+        date = datetime.now()
+        key_minutes = 'minutes_hour'
+        data = []
+        for x in all_dates:
+            date_info = {}
+
+            if verbose:
+                print('-' * 20)
+                print("Parse: '%s'" % x)
+                print('')
+
+            _ = merge(
+                list(map(lambda x: datetime.strptime(' '.join(x), "%I %M %p"),
+                         find_am_pm_time(x))),
+                list(map(lambda x: datetime.strptime(' '.join(x), "%H %M"),
+                         find_24_time(x)))
+            )
+
+            # print(_)
+            date_info[key_minutes] = _[0] if _ else None
+
+            for fun in funcs:
+                try:
+                    if verbose:
+                        print("Parse %s: %s" % (fun.__name__, fun(x)[0]))
+                    date_info[fun.__name__] = fun(x)[0]
+                except AttributeError as e:
+                    if verbose:
+                        print("Run '%s', error - %s" % (fun.__name__, e))
+                    pass
+            data.append(date_info)
+
+
+        _time = None
+        _day = None
+        for x in data:
+            if all(func.__name__ in x for func in funcs) and _day is None:
+
+                # print("Day", x.get('parse'))
+
+                _day = datetime(*x.get('parse')[:6])
+            elif x.get(key_minutes, None) is not None and _time is None:
+                # print("Time", x.get(key_minutes))
+                _time = x.get(key_minutes)
+
+    print(_day, type(_day), type(_time))
+
+    if _day is None:
+        result = None
+    else:
+        result = datetime(
+            _day.year,
+            _day.month,
+            _day.day,
+            _time.hour if _time is not None else 0,
+            _time.minute if _time is not None else 0,
+            _time.second if _time is not None else 0,
+        )
+
+    print(' ' * 20)
+    if verbose:
+        print(' ' * 20)
+        print('=' * 20)
 
     return result
 

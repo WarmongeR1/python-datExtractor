@@ -24,7 +24,6 @@ def create_folder(folder):
 create_folder(RES_FOLDER)
 create_folder(LEARN_FOLDER)
 
-
 def get_not_valid_cnts():
     return [
         193,
@@ -58,7 +57,8 @@ def get_not_valid_cnts():
 def main():
     active_folder = ACTIVE_PAGES_DIR
 
-    _path_markup_csv = join(RES_FOLDER, 'markup.csv')
+    # https://docs.google.com/spreadsheets/d/1WeJn9IrrIy1pMNYVzQdmTPmaYHG9DV6Fev-kc-K-Osw/edit?usp=sharing
+    _path_markup_csv = join(RES_FOLDER, 'markup - Лист1.csv')
 
     cnt_tests = 52
     test_data = read_csv(_path_markup_csv)[1:cnt_tests]
@@ -68,14 +68,25 @@ def main():
 
     not_processing_list = get_not_valid_cnts()
 
+
+    start_cnt = 10
+    verbose = True
+    test_data = test_data[start_cnt:]
+
     for page_str, _, date in test_data:
         page = int(page_str)
+        print("Processing %s of %s" % (page_str, cnt_tests))
         page_text = texts[page]
         if page not in not_processing_list and validate_page(page_text):
-            page_date = get_data_from_page(page_text)
-            if date != page_date:
-                print("Error: excepted '%s', got '%s'" % (date, page_date))
+            page_date = get_data_from_page(page_text, verbose=verbose)
+            page_date_str = page_date.strftime("%d.%m.%Y %H:%M:%S") \
+                if page_date is not None  else 'None'
+            if date != page_date_str:
+                print("Error: excepted '%s', got '%s'" % (date, page_date_str))
+                with open('/tmp/test.html', 'w') as fio:
+                    fio.write(page_text)
                 break
+
 
 if __name__ == '__main__':
     main()
