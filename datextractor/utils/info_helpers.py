@@ -3,7 +3,7 @@ from datetime import datetime
 from functools import partial
 import pprint
 import re
-
+import langid
 from bs4 import BeautifulSoup
 import bs4.element
 from funcy import mapcat, merge
@@ -18,6 +18,7 @@ def get_date_tags() -> dict:
             {"class": "meta"},
             {"class": "blog-post-meta single"},
             {"class": "last-updated"},
+            {"class": "post-meta"},
         ],
         "h2": [
             {"class": "date-header"},
@@ -152,6 +153,7 @@ def check_page_without_date(text: str) -> bool:
 
 def prepare_date(date: str) -> str:
     result = remove_week_day(date)
+    result = result.replace('\n', ' ').replace('\r', ' ').replace('  ', '')
     return result
 
 
@@ -182,17 +184,31 @@ def _extract_date(tag: str, el: bs4.element.Tag, verbose: bool=False) -> list:
     return result
 
 
-def find_am_pm_time(text):
+def find_am_pm_time(text: str):
     return re.findall(r'(\d{2}):(\d{2}) ?((?:am|pm))', text, re.I)
 
 
-def find_24_time(text):
+def find_24_time(text: str):
     return re.findall(r'(\d{2}):(\d{2})', text, re.I)
+
+def reg_exp_datetime(date: str):
+    result = None
+    regs_date = {
+        "%Y %m %d %H %M": '(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})',
+    }
+    for pattern, regex in regs_date.items():
+        res = re.match(regex, date)
+        if res:
+            result = datetime.strptime(' '.join(res.groups()), pattern)
+    return result
 
 
 def get_data_from_page(text: str, verbose: bool=False) -> datetime:
     page = BeautifulSoup(text, "lxml")
     cal = Calendar(Constants("en"))
+    _time = None
+    _day = None
+    _date = None
 
     funcs = [
         cal.parseDateText,
@@ -208,7 +224,6 @@ def get_data_from_page(text: str, verbose: bool=False) -> datetime:
         _ = page.findAll('table', {"class": "list"})
         _ = _[0].findAll("tr")[1].findAll('td')[3].getText()  # date (from html)
         _day = datetime.strptime(_, "%Y-%m-%d")  # datetime
-        _time = None
     else:
         _extract_func_date = partial(_extract_date, verbose=verbose)
         _tags = get_date_tags()
@@ -220,20 +235,22 @@ def get_data_from_page(text: str, verbose: bool=False) -> datetime:
                     mapcat(page.findAll,
                            [tag] * len(tags_params), tags_params))))
 
+        all_dates = list(map(prepare_date, all_dates))
+
         if verbose:
             print('=' * 20)
             print(' ' * 20)
             print(' ' * 20)
+            print(all_dates)
 
-        all_dates = list(map(prepare_date, all_dates))
-        print(all_dates)
-
-        # pprint.pprint(all_dates)
-        minutes_hour = datetime.now()
-        date = datetime.now()
         key_minutes = 'minutes_hour'
         data = []
         for x in all_dates:
+
+            _date = reg_exp_datetime(x)
+            if _date is not None:
+                break
+
             date_info = {}
 
             if verbose:
@@ -262,9 +279,6 @@ def get_data_from_page(text: str, verbose: bool=False) -> datetime:
                     pass
             data.append(date_info)
 
-
-        _time = None
-        _day = None
         for x in data:
             if all(func.__name__ in x for func in funcs) and _day is None:
 
@@ -275,9 +289,11 @@ def get_data_from_page(text: str, verbose: bool=False) -> datetime:
                 # print("Time", x.get(key_minutes))
                 _time = x.get(key_minutes)
 
-    print(_day, type(_day), type(_time))
+    print(_day, type(_day), type(_time), _date, type(_date))
 
-    if _day is None:
+    if _date is not None:
+        result = _date
+    elif _day is None:
         result = None
     else:
         result = datetime(

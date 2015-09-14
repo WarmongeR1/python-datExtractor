@@ -68,14 +68,24 @@ def main():
 
     not_processing_list = get_not_valid_cnts()
 
-
-    start_cnt = 10
+    start_cnt = 21
     verbose = True
     test_data = test_data[start_cnt:]
+
+    russian_page = [
+        18,
+    ]
 
     for page_str, _, date in test_data:
         page = int(page_str)
         print("Processing %s of %s" % (page_str, cnt_tests))
+
+        if page in russian_page:
+            print(
+                "This is Russian page, parsedatetime does not support this language"
+            )
+            continue
+
         page_text = texts[page]
         if page not in not_processing_list and validate_page(page_text):
             page_date = get_data_from_page(page_text, verbose=verbose)
