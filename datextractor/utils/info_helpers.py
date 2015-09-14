@@ -7,7 +7,7 @@ import langid
 from bs4 import BeautifulSoup
 import bs4.element
 from funcy import mapcat, merge
-from parsedatetime import Calendar, Constants
+from parsedatetime import Calendar, Constants, pdtLocales
 
 
 def get_date_tags() -> dict:
@@ -36,6 +36,7 @@ def get_date_tags() -> dict:
         ],
         "div": [
             {"class": "FeatureByline"},
+            {"class": "post-meta"},
             {"class": "author_date"},
             {"class": "marg__b_mid text-muted"},
             {"class": "entry entry-1"},
@@ -100,6 +101,9 @@ def get_date_tags() -> dict:
             {"class": "date"},
             {"class": "node_submitted first"},
         ],
+        "header": [
+            {},
+        ]
     }
 
 
@@ -153,7 +157,9 @@ def check_page_without_date(text: str) -> bool:
 
 def prepare_date(date: str) -> str:
     result = remove_week_day(date)
-    result = result.replace('\n', ' ').replace('\r', ' ').replace('  ', '')
+    result = result.replace('\n', ' ').replace('\r', ' ')
+    for x in range(4):
+        result = result.replace('  ', ' ')
     return result
 
 
@@ -195,10 +201,12 @@ def reg_exp_datetime(date: str):
     result = None
     regs_date = {
         "%Y %m %d %H %M": '(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})',
+        "%d %m %Y %H %M": '(\d{2}).(\d{2}).(\d{4}) (\d{2}):(\d{2})',
     }
     for pattern, regex in regs_date.items():
-        res = re.match(regex, date)
+        res = re.search(regex, date)
         if res:
+            print('%s: %s' % (reg_exp_datetime.__name__, res))
             result = datetime.strptime(' '.join(res.groups()), pattern)
     return result
 
@@ -342,8 +350,23 @@ def check_pypi(page: BeautifulSoup) -> bool:
 
 
 def remove_week_day(string: str) -> str:
-    weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday',
-                'saturday', 'sunday']
+    """
+
+    :param string:
+    :return:
+    """
+    short_months = ['mar', 'ma']
+    weekdays = []
+    for lang, obj in pdtLocales.items():
+        if lang == 'en_US' or lang == 'ru_RU':
+            try:
+                _ = obj()
+            except TypeError:
+                _ = obj(None)
+            weekdays.extend(_.Weekdays)
+            weekdays.extend([x for x in _.shortWeekdays if x not in short_months])
+
+    weekdays = list(set(weekdays))
     for x in weekdays:
         pattern = re.compile(x, re.IGNORECASE)
         string = pattern.sub("", string)

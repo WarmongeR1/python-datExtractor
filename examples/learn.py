@@ -68,12 +68,13 @@ def main():
 
     not_processing_list = get_not_valid_cnts()
 
-    start_cnt = 21
+    start_cnt = 33
     verbose = True
     test_data = test_data[start_cnt:]
 
     russian_page = [
         18,
+        26,
     ]
 
     for page_str, _, date in test_data:
