@@ -2,6 +2,10 @@
 
 from os.path import join
 import os
+import json
+
+import gspread
+from oauth2client.client import SignedJwtAssertionCredentials
 
 from datextractor.utils import get_texts_info, \
     get_data_from_page, \
@@ -14,6 +18,7 @@ LEARN_FOLDER = os.path.join(RES_FOLDER, 'learn')
 OUT_RES_FOLDER = '/home/warmonger/Develop/Groups/PythonDigest/resources/'
 ACTIVE_PAGES_DIR = os.path.join(OUT_RES_FOLDER, 'active', 'pages')
 NOT_ACTIVE_PAGES_DIR = os.path.join(OUT_RES_FOLDER, 'not_active', 'pages')
+
 
 
 def create_folder(folder):
@@ -52,6 +57,20 @@ def get_not_valid_cnts():
         932,
         964
     ]
+
+def get_test_table():
+    scope = ["https://spreadsheets.google.com/feeds"]
+    secrets_file = os.path.join(RES_FOLDER, 'google_json.json')
+    spreadsheet = "markup"
+    # Based on docs here - http://gspread.readthedocs.org/en/latest/oauth2.html
+    # Load in the secret JSON key (must be a service account)
+    json_key = json.load(open(secrets_file))
+    # Authenticate using the signed key
+    credentials = SignedJwtAssertionCredentials(json_key['client_email'], bytes(json_key['private_key'], 'utf-8'), scope)
+
+    gc = gspread.authorize(credentials)
+    return gc.open(spreadsheet).sheet1
+
 
 
 def main():
@@ -101,3 +120,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+

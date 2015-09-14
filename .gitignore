@@ -77,3 +77,4 @@ local_settings.py
 resources/build
 resources/active/pages
 resources/not_active/pages
+resources/google_json.json

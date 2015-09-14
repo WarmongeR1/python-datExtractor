@@ -1,3 +1,4 @@
+requests
 funcy==1.5
 six==1.9.0
 lxml==3.4.4
@@ -5,3 +6,6 @@ readability-lxml==0.6.1
 beautifulsoup4==4.4.0
 parsedatetime==1.5
 langid==1.1.5
+gspread
+oauth2client
+PyOpenSSL
