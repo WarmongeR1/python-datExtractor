@@ -1,9 +1,9 @@
 # -*- encoding: utf-8 -*-
 from datetime import datetime
 from functools import partial
-import pprint
 import re
-import langid
+import collections
+
 from bs4 import BeautifulSoup
 import bs4.element
 from funcy import mapcat, merge
@@ -19,6 +19,7 @@ def get_date_tags() -> dict:
             {"class": "blog-post-meta single"},
             {"class": "last-updated"},
             {"class": "post-meta"},
+            {"class": "post-date"},
         ],
         "h2": [
             {"class": "date-header"},
@@ -156,8 +157,9 @@ def check_page_without_date(text: str) -> bool:
 
 
 def prepare_date(date: str) -> str:
+    # result = date.translate(str.maketrans("", "", string.punctuation))
     result = remove_week_day(date)
-    result = result.replace('\n', ' ').replace('\r', ' ')
+    result = result.replace('\n', ' ').replace('\r', ' ').replace(',', '')
     for x in range(4):
         result = result.replace('  ', ' ')
     return result
@@ -184,9 +186,9 @@ def _extract_date(tag: str, el: bs4.element.Tag, verbose: bool=False) -> list:
     _ = _[:300]
     if _:
         result.append(_.lower().strip())
-
-    if verbose:
-        pprint.pprint(result)
+    #
+    # if verbose:
+    #     pprint.pprint(result)
     return result
 
 
@@ -199,15 +201,20 @@ def find_24_time(text: str):
 
 def reg_exp_datetime(date: str):
     result = None
-    regs_date = {
-        "%Y %m %d %H %M": '(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})',
-        "%d %m %Y %H %M": '(\d{2}).(\d{2}).(\d{4}) (\d{2}):(\d{2})',
-    }
-    for pattern, regex in regs_date.items():
+    regs_date = collections.OrderedDict([
+        ('(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})+|-(\d{2}):(\d{2})',
+         "%Y %m %d %H %M"),
+        ('(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})', "%Y %m %d %H %M"),
+        ('(\d{2}).(\d{2}).(\d{4}) (\d{2}):(\d{2})', "%d %m %Y %H %M"),
+        ('(\d{4})-(\d{2})-(\d{2})', "%Y %m %d"),
+    ])
+    for regex, pattern in regs_date.items():
         res = re.search(regex, date)
         if res:
-            print('%s: %s' % (reg_exp_datetime.__name__, res))
-            result = datetime.strptime(' '.join(res.groups()), pattern)
+            print(
+                '%s: %s - regexp: %s' % (reg_exp_datetime.__name__, res, regex))
+            result = datetime.strptime(' '.join(res.groups()[:5]), pattern)
+            break
     return result
 
 
@@ -278,23 +285,25 @@ def get_data_from_page(text: str, verbose: bool=False) -> datetime:
 
             for fun in funcs:
                 try:
-                    if verbose:
-                        print("Parse %s: %s" % (fun.__name__, fun(x)[0]))
+                    # if verbose:
+                    #     print("Parse %s: %s" % (fun.__name__, fun(x)[0]))
                     date_info[fun.__name__] = fun(x)[0]
                 except AttributeError as e:
-                    if verbose:
-                        print("Run '%s', error - %s" % (fun.__name__, e))
+                    # if verbose:
+                    #     print("Run '%s', error - %s" % (fun.__name__, e))
                     pass
             data.append(date_info)
 
         for x in data:
             if all(func.__name__ in x for func in funcs) and _day is None:
 
-                # print("Day", x.get('parse'))
+                if verbose:
+                    print("Day", x.get('parse'))
 
                 _day = datetime(*x.get('parse')[:6])
             elif x.get(key_minutes, None) is not None and _time is None:
-                # print("Time", x.get(key_minutes))
+                if verbose:
+                    print("Time", x.get(key_minutes))
                 _time = x.get(key_minutes)
 
     print(_day, type(_day), type(_time), _date, type(_date))
@@ -356,7 +365,7 @@ def remove_week_day(string: str) -> str:
     :return:
     """
     short_months = ['mar', 'ma']
-    weekdays = []
+    weekdays = ['th']
     for lang, obj in pdtLocales.items():
         if lang == 'en_US' or lang == 'ru_RU':
             try:
@@ -367,6 +376,7 @@ def remove_week_day(string: str) -> str:
             weekdays.extend([x for x in _.shortWeekdays if x not in short_months])
 
     weekdays = list(set(weekdays))
+
     for x in weekdays:
         pattern = re.compile(x, re.IGNORECASE)
         string = pattern.sub("", string)
