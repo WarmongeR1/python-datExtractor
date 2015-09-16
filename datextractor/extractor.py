@@ -18,7 +18,7 @@ __all__ = [
 def _extract_date(tag: str, el: bs4.element.Tag, verbose: bool = False) -> list:
     result = []
 
-    if len(el) > 500:
+    if len(el) > 300:
         return []
 
     # if verbose:
@@ -74,6 +74,21 @@ def _extract_date_tags(page, verbose: bool = False):
     return list(map(prepare_date, result))
 
 
+def _create_datetime(day, time):
+    if day is None:
+        result = None
+    else:
+        result = datetime(
+            day.year,
+            day.month,
+            day.day,
+            time.hour if time is not None else 0,
+            time.minute if time is not None else 0,
+            time.second if time is not None else 0,
+        )
+    return result
+
+
 def _extract_date_with_regex(elements):
     _date = None
     _day = None
@@ -85,6 +100,36 @@ def _extract_date_with_regex(elements):
         if '%Y %m %d' in _dates:
             _day = _dates['%Y %m %d']
     return _date, _day
+
+
+def _get_date_info(funcs: list, key_minutes: str, date_line: str) -> dict:
+    result = {}
+    _ = extract_time(date_line)
+    result[key_minutes] = _[0] if _ else None
+
+    for fun in funcs:
+        try:
+            result[fun.__name__] = fun(date_line)[0]
+        except AttributeError:
+            pass
+    return result
+
+
+def _extract_day_time(data: list, key_minutes: str, funcs_names: list, verbose: bool = False):
+    _time, _day = None, None
+    for x in data:
+        if all(func in x for func in funcs_names) and _day is None:
+
+            if verbose:
+                print("Day", x.get('parse'))
+
+            _day = datetime(*x.get('parse')[:6])
+        elif x.get(key_minutes, None) is not None and _time is None:
+            if verbose:
+                print("Time", x.get(key_minutes))
+            _time = x.get(key_minutes)
+
+    return _day, _time
 
 
 def extract(text: str, verbose: bool = False) -> datetime:
@@ -113,72 +158,23 @@ def extract(text: str, verbose: bool = False) -> datetime:
     if _date is not None:
         return _date
 
-    _time = None
-    _day = None
+    for x in _date_lines:
+        _date = reg_exp_datetime(x)
+        if _date is not None:
+            return _date
 
-    cal = Calendar(Constants("en"))
+    _cal = Calendar(Constants("en"))
 
     funcs = [
-        cal.parseDateText,
-        cal.parse,
-        cal.parseDT,
+        _cal.parseDateText,
+        _cal.parse,
+        _cal.parseDT,
     ]
 
     key_minutes = 'minutes_hour'
-    data = []
-    for x in _date_lines:
-        if verbose:
-            print('-' * 20)
-            print("Parse: '%s'" % x)
-            print('')
-
-        _date = reg_exp_datetime(x)
-        print(_date)
-        if _date is not None:
-            break
-
-        date_info = {}
-
-        _ = extract_time(x)
-        date_info[key_minutes] = _[0] if _ else None
-
-        for fun in funcs:
-            try:
-                # if verbose:
-                #     print("Parse %s: %s" % (fun.__name__, fun(x)[0]))
-                date_info[fun.__name__] = fun(x)[0]
-            except AttributeError as e:
-                # if verbose:
-                #     print("Run '%s', error - %s" % (fun.__name__, e))
-                pass
-        data.append(date_info)
-
-    if _date is not None:
-        return _date
-
-    for x in data:
-        if all(func.__name__ in x for func in funcs) and _day is None:
-
-            if verbose:
-                print("Day", x.get('parse'))
-
-            _day = datetime(*x.get('parse')[:6])
-        elif x.get(key_minutes, None) is not None and _time is None:
-            if verbose:
-                print("Time", x.get(key_minutes))
-            _time = x.get(key_minutes)
-
-    if _day is None:
-        result = None
-    else:
-        result = datetime(
-            _day.year,
-            _day.month,
-            _day.day,
-            _time.hour if _time is not None else 0,
-            _time.minute if _time is not None else 0,
-            _time.second if _time is not None else 0,
-        )
+    data = [_get_date_info(funcs, key_minutes, x) for x in _date_lines]
+    _day, _time = _extract_day_time(data, key_minutes, [x.__name__ for x in funcs], verbose)
+    result = _create_datetime(_day, _time)
 
     print(' ' * 20)
     if verbose:
