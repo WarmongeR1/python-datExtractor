@@ -87,7 +87,6 @@ def main():
             for x in table:
                 _.writerow(x)
 
-
     cnt_tests = 52
     test_data = table[1:cnt_tests]
 
@@ -96,13 +95,17 @@ def main():
 
     not_processing_list = get_not_valid_cnts()
 
-    start_cnt = 33
+    start_cnt = 32
     verbose = True
     test_data = test_data[start_cnt:]
 
     russian_page = [
         18,
         26,
+        42,
+        44,
+        46,
+        50,
     ]
 
     for page_str, _, date in test_data:
