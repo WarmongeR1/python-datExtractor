@@ -173,8 +173,7 @@ def extract(text: str, verbose: bool = False) -> datetime:
 
     key_minutes = 'minutes_hour'
     data = [_get_date_info(funcs, key_minutes, x) for x in _date_lines]
-    _day, _time = _extract_day_time(data, key_minutes, [x.__name__ for x in funcs], verbose)
-    result = _create_datetime(_day, _time)
+    result = _create_datetime(*_extract_day_time(data, key_minutes, [x.__name__ for x in funcs], verbose))
 
     print(' ' * 20)
     if verbose:
