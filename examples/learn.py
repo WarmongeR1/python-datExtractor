@@ -5,7 +5,6 @@ import os
 import json
 
 import gspread
-
 from oauth2client.client import SignedJwtAssertionCredentials
 
 from datextractor import extract, RES_FOLDER, ACTIVE_PAGES_DIR, LEARN_FOLDER
@@ -70,17 +69,13 @@ def main():
             for x in table:
                 _.writerow(x)
 
-    cnt_tests = 52
+    cnt_tests = 200
     test_data = table[1:cnt_tests]
 
     _path_active_texts_raw = join(LEARN_FOLDER, 'active_texts_raw.pkl')
     texts = get_texts_info(_path_active_texts_raw, active_folder)
 
     not_processing_list = get_not_valid_cnts()
-
-    start_cnt = 0
-    verbose = True
-    test_data = test_data[start_cnt:]
 
     russian_page = [
         18,
@@ -89,11 +84,30 @@ def main():
         44,
         46,
         50,
+        59,
+        60,
     ]
+
+    continue_list = [
+        1,
+        9,
+        37,
+        47,
+        63,
+        64,
+        68,
+    ]
+    start_cnt = 74
+    verbose = True
+    test_data = test_data[start_cnt:]
 
     for page_str, _, date in test_data:
         page = int(page_str)
         print("Processing %s of %s" % (page_str, cnt_tests))
+
+        if page in continue_list:
+            print("Random result")
+            continue
 
         if page in russian_page:
             print(

@@ -1,14 +1,16 @@
 # -*- encoding: utf-8 -*-
 from datetime import datetime
 from functools import partial
+from random import shuffle
 
 from bs4 import BeautifulSoup
 import bs4.element
 from funcy import mapcat, merge
 from parsedatetime import Calendar, Constants
 
-from datextractor.utils import get_date_tags, prepare_date, check_reg_exp_datetime, SITE_CHECKERS, SITE_EXTRACTORS, \
-    reg_exp_datetime, extract_time
+from datextractor import TAGS_PATH
+from datextractor.utils import prepare_date, check_reg_exp_datetime, SITE_CHECKERS, SITE_EXTRACTORS, \
+    reg_exp_datetime, extract_time, loadyaml
 
 __all__ = [
     'extract',
@@ -60,11 +62,13 @@ def _extract_of_site(page: BeautifulSoup, site: str) -> datetime:
     return SITE_EXTRACTORS[site](page)
 
 
-def _extract_date_tags(page, verbose: bool = False):
+def _extract_date_tags(page: BeautifulSoup, tags_file: str, verbose: bool = False):
     result = []
     _extract_func_date = partial(_extract_date, verbose=verbose)
-    _tags = get_date_tags()
+    _tags = loadyaml(tags_file)
     for tag, tags_params in _tags.items():
+        # if verbose:
+        #     print("Processing tag - '%s'" % tag)
         result = merge(
             result,
             list(mapcat(
@@ -102,15 +106,22 @@ def _extract_date_with_regex(elements):
     return _date, _day
 
 
-def _get_date_info(funcs: list, key_minutes: str, date_line: str) -> dict:
+def _get_date_info(funcs: list, key_minutes: str, date_line: str, verbose: bool = False) -> dict:
     result = {}
     _ = extract_time(date_line)
     result[key_minutes] = _[0] if _ else None
 
+    if verbose:
+        print('')
+
     for fun in funcs:
         try:
+            if verbose:
+                print("Parse %s: %s" % (fun.__name__, fun(date_line)[0]))
             result[fun.__name__] = fun(date_line)[0]
         except AttributeError:
+            # if verbose:
+            #     print("Run '%s', error - %s" % (fun.__name__, e))
             pass
     return result
 
@@ -133,7 +144,6 @@ def _extract_day_time(data: list, key_minutes: str, funcs_names: list, verbose: 
 
 
 def extract(text: str, verbose: bool = False) -> datetime:
-    result = None
     page = BeautifulSoup(text, "lxml")
 
     if verbose:
@@ -149,7 +159,8 @@ def extract(text: str, verbose: bool = False) -> datetime:
         print(' ' * 20)
         print(' ' * 20)
 
-    _date_lines = _extract_date_tags(page, verbose)
+    _date_lines = _extract_date_tags(page, TAGS_PATH, verbose)
+    shuffle(_date_lines)
 
     if verbose:
         print(_date_lines)
@@ -172,7 +183,7 @@ def extract(text: str, verbose: bool = False) -> datetime:
     ]
 
     key_minutes = 'minutes_hour'
-    data = [_get_date_info(funcs, key_minutes, x) for x in _date_lines]
+    data = [_get_date_info(funcs, key_minutes, x, verbose) for x in _date_lines]
     result = _create_datetime(*_extract_day_time(data, key_minutes, [x.__name__ for x in funcs], verbose))
 
     print(' ' * 20)

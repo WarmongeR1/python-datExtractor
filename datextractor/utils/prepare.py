@@ -10,21 +10,21 @@ __all__ = [
 
 def prepare_date(date: str) -> str:
     # result = date.translate(str.maketrans("", "", string.punctuation))
-    result = remove_week_day(date)
+    result = remove_bad_words(date)
     result = result.replace('\n', ' ').replace('\r', ' ').replace(',', '')
     for _ in range(6):
         result = result.replace('  ', ' ')
     return result
 
 
-def remove_week_day(string: str) -> str:
+def remove_bad_words(string: str) -> str:
     """
 
     :param string:
     :return:
     """
     short_months = ['mar', 'ma']
-    weekdays = ['th']
+    weekdays = ['th', 'at']
     for lang, obj in pdtLocales.items():
         if lang == 'en_US' or lang == 'ru_RU':
             try:

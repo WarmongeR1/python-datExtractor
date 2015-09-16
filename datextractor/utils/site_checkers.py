@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 
 __all__ = [
     'check_pypi',
+    'check_github',
 ]
 
 
@@ -13,8 +14,10 @@ def check_pypi(page: BeautifulSoup) -> bool:
     :param page:
     :return:
     """
-    if page.findAll("link",
-                    {'href': 'https://pypi.python.org/pypi?:action=rss'}):
-        return True
-    else:
-        return False
+    return bool(page.findAll("link",
+                             {'href': 'https://pypi.python.org/pypi?:action=rss'}))
+
+
+def check_github(page: BeautifulSoup) -> bool:
+    data = ["meta", {'name': 'hostname', 'content': 'github.com'}]
+    return bool(page.findAll(*data))

@@ -3,6 +3,7 @@ abbr:
 div:
 - {class: FeatureByline}
 - {class: post-meta}
+- {class: recorded-date}
 - {class: author_date}
 - {class: marg__b_mid text-muted}
 - {class: entry entry-1}
@@ -15,6 +16,7 @@ div:
 - {class: tutorial-date}
 - {class: post-author}
 - {class: Byline}
+- {class: commit-meta}
 - {class: date}
 - {class: time}
 - {id: last_updated}
@@ -71,6 +73,7 @@ td:
 - {align: left, valign: middle}
 time:
 - {class: post-time}
+- {class: updated, is: relative-time}
 - {itemprop: datePublished}
 - {}
 ul:

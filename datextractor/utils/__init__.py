@@ -12,8 +12,10 @@ from .validate import *
 
 SITE_CHECKERS = {
     'pypi': check_pypi,
+    'github': check_github,
 }
 
 SITE_EXTRACTORS = {
     'pypi': extract_pypi,
+    'github': extract_github,
 }
