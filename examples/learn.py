@@ -1,6 +1,5 @@
 # -*- encoding: utf-8 -*-
 import csv
-
 from os.path import join
 import os
 import json
@@ -8,27 +7,9 @@ import json
 import gspread
 from oauth2client.client import SignedJwtAssertionCredentials
 
-from datextractor.utils import get_texts_info, \
-    get_data_from_page, \
-    validate_page, read_csv
+from datextractor import extract, RES_FOLDER, ACTIVE_PAGES_DIR, LEARN_FOLDER, TAGS_PATH
+from datextractor.utils import validate_page, get_texts_info, read_csv, get_date_tags, dict2yaml
 
-BASE_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), '..'))
-RES_FOLDER = os.path.join(BASE_DIR, 'resources')
-LEARN_FOLDER = os.path.join(RES_FOLDER, 'learn')
-
-OUT_RES_FOLDER = '/home/warmonger/Develop/Groups/PythonDigest/resources/'
-ACTIVE_PAGES_DIR = os.path.join(OUT_RES_FOLDER, 'active', 'pages')
-NOT_ACTIVE_PAGES_DIR = os.path.join(OUT_RES_FOLDER, 'not_active', 'pages')
-
-
-
-def create_folder(folder):
-    if not os.path.isdir(folder):
-        os.makedirs(folder)
-
-
-create_folder(RES_FOLDER)
-create_folder(LEARN_FOLDER)
 
 def get_not_valid_cnts():
     return [
@@ -59,6 +40,7 @@ def get_not_valid_cnts():
         964
     ]
 
+
 def get_test_table():
     scope = ["https://spreadsheets.google.com/feeds"]
     secrets_file = os.path.join(RES_FOLDER, 'google_json.json')
@@ -67,11 +49,11 @@ def get_test_table():
     # Load in the secret JSON key (must be a service account)
     json_key = json.load(open(secrets_file))
     # Authenticate using the signed key
-    credentials = SignedJwtAssertionCredentials(json_key['client_email'], bytes(json_key['private_key'], 'utf-8'), scope)
+    credentials = SignedJwtAssertionCredentials(json_key['client_email'], bytes(json_key['private_key'], 'utf-8'),
+                                                scope)
 
     gc = gspread.authorize(credentials)
     return gc.open(spreadsheet).sheet1
-
 
 
 def main():
@@ -95,7 +77,7 @@ def main():
 
     not_processing_list = get_not_valid_cnts()
 
-    start_cnt = 32
+    start_cnt = 47
     verbose = True
     test_data = test_data[start_cnt:]
 
@@ -120,7 +102,7 @@ def main():
 
         page_text = texts[page]
         if page not in not_processing_list and validate_page(page_text):
-            page_date = get_data_from_page(page_text, verbose=verbose)
+            page_date = extract(page_text, verbose=verbose)
             page_date_str = page_date.strftime("%d.%m.%Y %H:%M:%S") \
                 if page_date is not None  else 'None'
             if date != page_date_str:
@@ -132,5 +114,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-

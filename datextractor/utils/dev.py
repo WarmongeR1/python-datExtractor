@@ -1,15 +1,24 @@
 # -*- encoding: utf-8 -*-
+
+from glob import glob
+from os.path import exists, basename
+
+import yaml
+
+from six.moves.cPickle import load, dump
+
 __all__ = [
     'load_pickle',
     'save_pickle',
     'read',
     'get_texts_info',
+    'dict2yaml',
 ]
 
-from glob import glob
-from os.path import exists, basename
 
-from six.moves.cPickle import load, dump
+def dict2yaml(data: dict, filepath: str):
+    with open(filepath, 'w') as outfile:
+        outfile.write(yaml.dump(data))
 
 
 def load_pickle(path: str) -> object:
