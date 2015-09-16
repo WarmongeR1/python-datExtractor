@@ -5,10 +5,11 @@ import os
 import json
 
 import gspread
+
 from oauth2client.client import SignedJwtAssertionCredentials
 
-from datextractor import extract, RES_FOLDER, ACTIVE_PAGES_DIR, LEARN_FOLDER, TAGS_PATH
-from datextractor.utils import validate_page, get_texts_info, read_csv, get_date_tags, dict2yaml
+from datextractor import extract, RES_FOLDER, ACTIVE_PAGES_DIR, LEARN_FOLDER
+from datextractor.utils import validate_page, get_texts_info, read_csv
 
 
 def get_not_valid_cnts():
@@ -77,7 +78,7 @@ def main():
 
     not_processing_list = get_not_valid_cnts()
 
-    start_cnt = 47
+    start_cnt = 0
     verbose = True
     test_data = test_data[start_cnt:]
 

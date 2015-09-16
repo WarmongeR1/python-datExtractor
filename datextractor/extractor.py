@@ -7,8 +7,8 @@ import bs4.element
 from funcy import mapcat, merge
 from parsedatetime import Calendar, Constants
 
-from datextractor.utils import check_pypi, get_date_tags, prepare_date, check_reg_exp_datetime, reg_exp_datetime, \
-    find_am_pm_time, find_24_time
+from datextractor.utils import get_date_tags, prepare_date, check_reg_exp_datetime, SITE_CHECKERS, SITE_EXTRACTORS, \
+    reg_exp_datetime, extract_time
 
 __all__ = [
     'extract',
@@ -42,12 +42,81 @@ def _extract_date(tag: str, el: bs4.element.Tag, verbose: bool = False) -> list:
     return result
 
 
+def _check_sites(page: BeautifulSoup, verbose: bool = False):
+    result = None
+    for site, checker in SITE_CHECKERS.items():
+        if verbose:
+            print("Check of site '%s'..." % site)
+        if checker(page):
+            if verbose:
+                print("Page is site - '%s'" % site)
+            result = site
+            break
+    return result
+
+
+def _extract_of_site(page: BeautifulSoup, site: str) -> datetime:
+    assert site in SITE_EXTRACTORS, "Not found extractor for size '%s'" % site
+    return SITE_EXTRACTORS[site](page)
+
+
+def _extract_date_tags(page, verbose: bool = False):
+    result = []
+    _extract_func_date = partial(_extract_date, verbose=verbose)
+    _tags = get_date_tags()
+    for tag, tags_params in _tags.items():
+        result = merge(
+            result,
+            list(mapcat(
+                partial(_extract_func_date, tag),
+                mapcat(page.findAll,
+                       [tag] * len(tags_params), tags_params))))
+    return list(map(prepare_date, result))
+
+
+def _extract_date_with_regex(elements):
+    _date = None
+    _day = None
+
+    _dates = check_reg_exp_datetime(elements)
+    if _dates:
+        if '%Y %m %d %H %M' in _dates:
+            _date = _dates['%Y %m %d %H %M']
+        if '%Y %m %d' in _dates:
+            _day = _dates['%Y %m %d']
+    return _date, _day
+
+
 def extract(text: str, verbose: bool = False) -> datetime:
+    result = None
     page = BeautifulSoup(text, "lxml")
-    cal = Calendar(Constants("en"))
+
+    if verbose:
+        print("Run site checkers...")
+    _ = _check_sites(page, verbose)
+    _date = _extract_of_site(page, _) if _ is not None else None
+    if _date is not None:
+        return _date
+
+    if verbose:
+        print("Extract tags from page")
+        print('=' * 20)
+        print(' ' * 20)
+        print(' ' * 20)
+
+    _date_lines = _extract_date_tags(page, verbose)
+
+    if verbose:
+        print(_date_lines)
+
+    _date, _day = _extract_date_with_regex(_date_lines)
+    if _date is not None:
+        return _date
+
     _time = None
     _day = None
-    _date = None
+
+    cal = Calendar(Constants("en"))
 
     funcs = [
         cal.parseDateText,
@@ -55,90 +124,51 @@ def extract(text: str, verbose: bool = False) -> datetime:
         cal.parseDT,
     ]
 
-    all_dates = []
-
-    if check_pypi(page):
+    key_minutes = 'minutes_hour'
+    data = []
+    for x in _date_lines:
         if verbose:
-            print("Pypy page")
-        _ = page.findAll('table', {"class": "list"})
-        _ = _[0].findAll("tr")[1].findAll('td')[3].getText()  # date (from html)
-        _day = datetime.strptime(_, "%Y-%m-%d")  # datetime
-    else:
-        _extract_func_date = partial(_extract_date, verbose=verbose)
-        _tags = get_date_tags()
-        for tag, tags_params in _tags.items():
-            all_dates = merge(
-                all_dates,
-                list(mapcat(
-                    partial(_extract_func_date, tag),
-                    mapcat(page.findAll,
-                           [tag] * len(tags_params), tags_params))))
+            print('-' * 20)
+            print("Parse: '%s'" % x)
+            print('')
 
-        all_dates = list(map(prepare_date, all_dates))
+        _date = reg_exp_datetime(x)
+        print(_date)
+        if _date is not None:
+            break
 
-        if verbose:
-            print('=' * 20)
-            print(' ' * 20)
-            print(' ' * 20)
-            print(all_dates)
+        date_info = {}
 
-        for x in all_dates:
-            if check_reg_exp_datetime(x):
-                print(x)
+        _ = extract_time(x)
+        date_info[key_minutes] = _[0] if _ else None
 
-        key_minutes = 'minutes_hour'
-        data = []
-        for x in all_dates:
-
-            _date = reg_exp_datetime(x)
-            if _date is not None:
-                break
-
-            date_info = {}
-
-            if verbose:
-                print('-' * 20)
-                print("Parse: '%s'" % x)
-                print('')
-
-            _ = merge(
-                list(map(lambda x: datetime.strptime(' '.join(x), "%I %M %p"),
-                         find_am_pm_time(x))),
-                list(map(lambda x: datetime.strptime(' '.join(x), "%H %M"),
-                         find_24_time(x)))
-            )
-
-            # print(_)
-            date_info[key_minutes] = _[0] if _ else None
-
-            for fun in funcs:
-                try:
-                    # if verbose:
-                    #     print("Parse %s: %s" % (fun.__name__, fun(x)[0]))
-                    date_info[fun.__name__] = fun(x)[0]
-                except AttributeError as e:
-                    # if verbose:
-                    #     print("Run '%s', error - %s" % (fun.__name__, e))
-                    pass
-            data.append(date_info)
-
-        for x in data:
-            if all(func.__name__ in x for func in funcs) and _day is None:
-
-                if verbose:
-                    print("Day", x.get('parse'))
-
-                _day = datetime(*x.get('parse')[:6])
-            elif x.get(key_minutes, None) is not None and _time is None:
-                if verbose:
-                    print("Time", x.get(key_minutes))
-                _time = x.get(key_minutes)
-
-    print(_day, type(_day), type(_time), _date, type(_date))
+        for fun in funcs:
+            try:
+                # if verbose:
+                #     print("Parse %s: %s" % (fun.__name__, fun(x)[0]))
+                date_info[fun.__name__] = fun(x)[0]
+            except AttributeError as e:
+                # if verbose:
+                #     print("Run '%s', error - %s" % (fun.__name__, e))
+                pass
+        data.append(date_info)
 
     if _date is not None:
-        result = _date
-    elif _day is None:
+        return _date
+
+    for x in data:
+        if all(func.__name__ in x for func in funcs) and _day is None:
+
+            if verbose:
+                print("Day", x.get('parse'))
+
+            _day = datetime(*x.get('parse')[:6])
+        elif x.get(key_minutes, None) is not None and _time is None:
+            if verbose:
+                print("Time", x.get(key_minutes))
+            _time = x.get(key_minutes)
+
+    if _day is None:
         result = None
     else:
         result = datetime(

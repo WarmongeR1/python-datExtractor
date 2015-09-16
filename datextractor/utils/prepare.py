@@ -12,7 +12,7 @@ def prepare_date(date: str) -> str:
     # result = date.translate(str.maketrans("", "", string.punctuation))
     result = remove_week_day(date)
     result = result.replace('\n', ' ').replace('\r', ' ').replace(',', '')
-    for x in range(4):
+    for _ in range(6):
         result = result.replace('  ', ' ')
     return result
 
