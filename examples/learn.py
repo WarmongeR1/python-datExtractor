@@ -70,7 +70,7 @@ def main():
                 _.writerow(x)
 
     cnt_tests = 200
-    test_data = table[1:cnt_tests]
+    test_data = table[1:cnt_tests + 2]
 
     _path_active_texts_raw = join(LEARN_FOLDER, 'active_texts_raw.pkl')
     texts = get_texts_info(_path_active_texts_raw, active_folder)
@@ -86,6 +86,21 @@ def main():
         50,
         59,
         60,
+        89,
+        107,
+        111,
+        115,
+        118,
+        124,
+        129,
+        134,
+        137,
+        139,
+        175,
+        181,
+        189,
+        192,
+        195,
     ]
 
     continue_list = [
@@ -96,9 +111,27 @@ def main():
         63,
         64,
         68,
+        76,
+        82,
+        92,
+        105,
+        106,
+        116,
+        117,
+        120,
+        141,
+        163,
+        164,
+        174,
+        176,
+        178,
+        179,
+        185,
+        188,
+        198,
     ]
-    start_cnt = 74
-    verbose = True
+    start_cnt = 0
+    verbose = False
     test_data = test_data[start_cnt:]
 
     for page_str, _, date in test_data:

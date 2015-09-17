@@ -2,6 +2,7 @@ abbr:
 - {class: published}
 div:
 - {class: FeatureByline}
+- {class: byline}
 - {class: post-meta}
 - {class: recorded-date}
 - {class: author_date}
@@ -22,6 +23,7 @@ div:
 - {id: last_updated}
 - {id: blogpost-info}
 - {id: bio_date}
+- {id: hubspot-author_data}
 - {class: infos}
 - {class: row withgap}
 - {class: submitted}
@@ -45,6 +47,7 @@ meta:
 - {property: 'og:article:modified_time'}
 p:
 - {class: date}
+- {class: blog_entry_date}
 - {class: time}
 - {class: meta}
 - {class: blog-post-meta single}
@@ -67,6 +70,7 @@ span:
 - {class: created-date}
 - {class: wi_date}
 - {class: post-date}
+- {class: right white}
 table:
 - {class: list}
 td:
@@ -79,3 +83,5 @@ time:
 ul:
 - {class: post-info}
 - {class: post-date}
+em:
+- {}
