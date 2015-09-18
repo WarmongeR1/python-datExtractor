@@ -24,7 +24,7 @@ def remove_bad_words(string: str) -> str:
     :return:
     """
     short_months = ['mar', 'ma']
-    weekdays = ['th', 'at']
+    weekdays = ['th', 'at', 'г.']
     for lang, obj in pdtLocales.items():
         if lang == 'en_US' or lang == 'ru_RU':
             try:

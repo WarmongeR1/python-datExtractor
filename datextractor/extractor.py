@@ -1,12 +1,14 @@
 # -*- encoding: utf-8 -*-
 from datetime import datetime
-from functools import partial
+from functools import partial, lru_cache
 from random import shuffle
 
 from bs4 import BeautifulSoup
 import bs4.element
 from funcy import mapcat, merge
+
 from parsedatetime import Calendar, Constants
+import langid
 
 from datextractor import TAGS_PATH
 from datextractor.utils import prepare_date, check_reg_exp_datetime, SITE_CHECKERS, SITE_EXTRACTORS, \
@@ -106,7 +108,19 @@ def _extract_date_with_regex(elements):
     return _date, _day
 
 
-def _get_date_info(funcs: list, key_minutes: str, date_line: str, verbose: bool = False) -> dict:
+@lru_cache(maxsize=10)
+def get_parse_functions(language: str = 'en') -> list:
+    _cal = Calendar(Constants(language))
+    return [
+        _cal.parseDateText,
+        _cal.parse,
+        _cal.parseDT,
+    ]
+
+
+def _get_date_info(key_minutes: str, date_line: str, verbose: bool = False) -> dict:
+    funcs = get_parse_functions(langid.classify(date_line)[0])
+
     result = {}
     _ = extract_time(date_line)
     result[key_minutes] = _[0] if _ else None
@@ -144,6 +158,7 @@ def _extract_day_time(data: list, key_minutes: str, funcs_names: list, verbose: 
 
 
 def extract(text: str, verbose: bool = False) -> datetime:
+    langid.set_languages(['en', 'ru'])
     page = BeautifulSoup(text, "lxml")
 
     if verbose:
@@ -183,7 +198,7 @@ def extract(text: str, verbose: bool = False) -> datetime:
     ]
 
     key_minutes = 'minutes_hour'
-    data = [_get_date_info(funcs, key_minutes, x, verbose) for x in _date_lines]
+    data = [_get_date_info(key_minutes, x, verbose) for x in _date_lines]
     result = _create_datetime(*_extract_day_time(data, key_minutes, [x.__name__ for x in funcs], verbose))
 
     print(' ' * 20)

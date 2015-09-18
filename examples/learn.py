@@ -132,21 +132,26 @@ def main():
         188,
         198,
     ]
-    start_cnt = 0
-    verbose = False
-    test_data = test_data[start_cnt:]
+    start_cnt = 18
+    verbose = True
+    test_data = test_data[start_cnt:42]
 
     for page_str, _, date in test_data:
         page = int(page_str)
         print("Processing %s of %s" % (page_str, cnt_tests))
-
-        if page in continue_list:
-            print("Random result")
-            continue
-
-        if page in russian_page:
+        #
+        # if page in continue_list:
+        #     print("Random result")
+        #     continue
+        #
+        # if page in russian_page:
+        #     print(
+        #         "This is Russian page, parsedatetime does not support this language"
+        #     )
+        #     continue
+        if page not in russian_page:
             print(
-                "This is Russian page, parsedatetime does not support this language"
+                "Work with russian"
             )
             continue
 
