@@ -5,6 +5,7 @@ import os
 import json
 
 import gspread
+
 from oauth2client.client import SignedJwtAssertionCredentials
 
 from datextractor import extract, RES_FOLDER, ACTIVE_PAGES_DIR, LEARN_FOLDER
@@ -77,82 +78,62 @@ def main():
 
     not_processing_list = get_not_valid_cnts()
 
-    russian_page = [
-        18,
-        26,
-        42,
-        44,
-        46,
-        50,
-        59,
-        60,
-        89,
-        107,
-        111,
-        115,
-        118,
-        124,
-        129,
-        134,
-        137,
-        139,
-        175,
-        181,
-        189,
-        192,
-        195,
-    ]
-
     continue_list = [
         1,
         9,
+        18,
         21,
         37,
+        42,
+        44,
         47,
+        59,
+        50,
         63,
+        60,
         64,
         68,
         76,
         81,
         82,
+        89,
         92,
         105,
         106,
         116,
         117,
+        118,
+        111,
         120,
+        129,
+        134,
+        137,
         141,
         163,
         164,
         174,
+        175,
         176,
         178,
         179,
         185,
+        181,
         188,
+        189,
         198,
+        192,
+        195,
     ]
-    start_cnt = 18
-    verbose = True
-    test_data = test_data[start_cnt:42]
+    start_cnt = 0
+    verbose = False
+    test_data = test_data[start_cnt:]
 
     for page_str, _, date in test_data:
         page = int(page_str)
         print("Processing %s of %s" % (page_str, cnt_tests))
-        #
-        # if page in continue_list:
-        #     print("Random result")
-        #     continue
-        #
-        # if page in russian_page:
-        #     print(
-        #         "This is Russian page, parsedatetime does not support this language"
-        #     )
-        #     continue
-        if page not in russian_page:
-            print(
-                "Work with russian"
-            )
+
+        if page in continue_list:
+            print("Random result")
             continue
 
         page_text = texts[page]

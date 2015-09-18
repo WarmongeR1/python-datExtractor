@@ -110,6 +110,8 @@ def _extract_date_with_regex(elements):
 
 @lru_cache(maxsize=10)
 def get_parse_functions(language: str = 'en') -> list:
+    if language == 'ru':
+        language = 'ru_RU'
     _cal = Calendar(Constants(language))
     return [
         _cal.parseDateText,
