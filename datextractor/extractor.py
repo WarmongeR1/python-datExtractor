@@ -135,10 +135,15 @@ def _get_date_info(key_minutes: str, date_line: str, verbose: bool = False) -> d
             if verbose:
                 print("Parse %s: %s" % (fun.__name__, fun(date_line)[0]))
             _ = fun(date_line)[0]
-            _1 = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            if str(_) != _1:
-                result[fun.__name__] = _
-        except AttributeError:
+            _1 = datetime.now()
+
+            if str(_) == _1.strftime("%Y-%m-%d %H:%M:%S"):
+                continue
+            if isinstance(_, datetime) and _.year > _1.year:
+                continue
+
+            result[fun.__name__] = _
+        except AttributeError as e:
             # if verbose:
             #     print("Run '%s', error - %s" % (fun.__name__, e))
             pass
@@ -206,8 +211,8 @@ def extract(text: str, verbose: bool = False) -> datetime:
     data = [_get_date_info(key_minutes, x, verbose) for x in _date_lines]
     result = _create_datetime(*_extract_day_time(data, key_minutes, [x.__name__ for x in funcs], verbose))
 
-    print(' ' * 20)
     if verbose:
+        print(' ' * 20)
         print(' ' * 20)
         print('=' * 20)
 

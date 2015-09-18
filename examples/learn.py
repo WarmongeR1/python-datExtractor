@@ -59,7 +59,7 @@ def get_test_table():
     return gc.open(spreadsheet).sheet1
 
 
-def test_page(page: int, date: str, texts: list, tests_cnt: int = 10, verbose: bool = False):
+def test_page(page: int, date: str, texts: list, tests_cnt: int = 5, verbose: bool = False):
     not_processing_list = get_not_valid_cnts()
     page_text = texts[page]
     if page not in not_processing_list and validate_page(page_text):
@@ -68,7 +68,10 @@ def test_page(page: int, date: str, texts: list, tests_cnt: int = 10, verbose: b
             page_date_str = page_date.strftime("%d.%m.%Y %H:%M:%S") \
                 if page_date is not None  else 'None'
             if date != page_date_str:
+                print("Error: excepted '%s', got '%s'" % (date, page_date_str))
                 print("!!!!!!! Not equal")
+            else:
+                print("!!!!!!! Equal")
 
 
 def main():
@@ -93,10 +96,8 @@ def main():
     not_processing_list = get_not_valid_cnts()
 
     continue_list = [
-        1,
-        9,
         18,
-        21,
+        9,
         37,
         42,
         44,
@@ -138,38 +139,34 @@ def main():
         192,
         195,
     ]
-    start_cnt = 18
-    verbose = False
-    # test_data = test_data[0:19]
+    start_cnt = 38
+    verbose = True
+    # test_number = continue_list[1]
+    # test_page(test_number, test_data[test_number][2], texts, verbose=verbose)
+    test_data = test_data[start_cnt:]
 
-    test_number = 18
+    for page_str, _, date in test_data:
+        page = int(page_str)
+        print("Processing %s of %s" % (page_str, cnt_tests))
+        #
+        # if page in continue_list:
+        #     print("Random result")
+        #     continue
 
-    test_page(test_number, test_data[test_number][2], texts, verbose=verbose)
+        # if page not in continue_list:
+        #     # print("Random result")
+        #     continue
 
-    #
-    #
-    # for page_str, _, date in test_data:
-    #     page = int(page_str)
-    #     print("Processing %s of %s" % (page_str, cnt_tests))
-    #     #
-    #     # if page in continue_list:
-    #     #     print("Random result")
-    #     #     continue
-    #
-    #     if page not in continue_list:
-    #         # print("Random result")
-    #         continue
-    #
-    #     page_text = texts[page]
-    #     if page not in not_processing_list and validate_page(page_text):
-    #         page_date = extract(page_text, verbose=verbose)
-    #         page_date_str = page_date.strftime("%d.%m.%Y %H:%M:%S") \
-    #             if page_date is not None  else 'None'
-    #         if date != page_date_str:
-    #             print("Error: excepted '%s', got '%s'" % (date, page_date_str))
-    #             with open('/tmp/test.html', 'w') as fio:
-    #                 fio.write(page_text)
-    #             break
+        page_text = texts[page]
+        if page not in not_processing_list and validate_page(page_text):
+            page_date = extract(page_text, verbose=verbose)
+            page_date_str = page_date.strftime("%d.%m.%Y %H:%M:%S") \
+                if page_date is not None  else 'None'
+            if date != page_date_str:
+                print("Error: excepted '%s', got '%s'" % (date, page_date_str))
+                with open('/tmp/test.html', 'w') as fio:
+                    fio.write(page_text)
+                break
 
 
 if __name__ == '__main__':
