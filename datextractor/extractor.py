@@ -134,7 +134,10 @@ def _get_date_info(key_minutes: str, date_line: str, verbose: bool = False) -> d
         try:
             if verbose:
                 print("Parse %s: %s" % (fun.__name__, fun(date_line)[0]))
-            result[fun.__name__] = fun(date_line)[0]
+            _ = fun(date_line)[0]
+            _1 = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            if str(_) != _1:
+                result[fun.__name__] = _
         except AttributeError:
             # if verbose:
             #     print("Run '%s', error - %s" % (fun.__name__, e))
