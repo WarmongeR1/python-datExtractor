@@ -139,7 +139,7 @@ def main():
         192,
         195,
     ]
-    start_cnt = 38
+    start_cnt = 1
     verbose = True
     # test_number = continue_list[1]
     # test_page(test_number, test_data[test_number][2], texts, verbose=verbose)

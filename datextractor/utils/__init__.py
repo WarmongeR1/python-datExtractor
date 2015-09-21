@@ -13,9 +13,11 @@ from .validate import *
 SITE_CHECKERS = {
     'pypi': check_pypi,
     'github': check_github,
+    'habrahabr': check_habrahabr,
 }
 
 SITE_EXTRACTORS = {
     'pypi': extract_pypi,
     'github': extract_github,
+    'habrahabr': extract_habrahabr,
 }
